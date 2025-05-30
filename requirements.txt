@@ -1,0 +1,22 @@
+# Flask core
+flask
+flask-cors
+
+# Server for production
+gunicorn
+
+# Audio and transcription
+pydub
+faster-whisper
+ffmpeg-python  # Python wrapper (not system-level ffmpeg)
+
+# Google AI
+google-generativeai
+
+# Utilities
+tqdm
+pyngrok  # For Colab/localhost testing
+
+# Optional: Useful for environment variable management
+python-dotenv
+waitress

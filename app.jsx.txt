@@ -1,0 +1,284 @@
+import React, { useState } from "react";
+import ReactMarkdown from "react-markdown";
+
+// 🔁 Set this once — no need to change anywhere else!
+const BACKEND_URL = "https://101c-34-48-91-66.ngrok-free.app";
+
+const App = () => {
+  const [audioFile, setAudioFile] = useState(null);
+  const [transcription, setTranscription] = useState(() =>
+    localStorage.getItem("transcription") || ""
+  );
+  const [blog, setBlog] = useState(() => localStorage.getItem("blog") || "");
+  const [linkedinPost, setLinkedinPost] = useState(() =>
+    localStorage.getItem("linkedinPost") || ""
+  );
+  const [newsletter, setNewsletter] = useState(() =>
+    localStorage.getItem("newsletter") || ""
+  );
+  const [seo, setSEO] = useState(() => {
+      const savedSEO = localStorage.getItem("seo");
+      return savedSEO
+        ? JSON.parse(savedSEO)
+        : { title: "", description: "", keywords: "" };
+    });
+  const [analysis, setAnalysis] = useState(() =>
+    localStorage.getItem("analysis") || ""
+  );
+  const [loading, setLoading] = useState(false);
+  const [linkedinImage, setLinkedinImage] = useState(null);
+
+  // Clear localStorage when new file is uploaded
+  const handleFileChange = async (e) => {
+    localStorage.removeItem("transcription");
+    localStorage.removeItem("blog");
+    localStorage.removeItem("linkedinPost");
+    localStorage.removeItem("newsletter");
+    localStorage.removeItem("seo");
+    localStorage.removeItem("analysis");
+
+    const file = e.target.files[0];
+    if (!file) return;
+    setAudioFile(file);
+    setLoading(true);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/upload`, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      const {
+        transcript,
+        content,
+        seo: seoData,
+        analysis: analysisText
+      } = data;
+
+      // Set state + save to localStorage
+      setTranscription(transcript);
+      localStorage.setItem("transcription", transcript);
+
+      setBlog(content.blog || "");
+      localStorage.setItem("blog", content.blog || "");
+
+      setLinkedinPost(content.linkedin || "");
+      localStorage.setItem("linkedinPost", content.linkedin || "");
+
+      setNewsletter(content.newsletter || "");
+      localStorage.setItem("newsletter", content.newsletter || "");
+
+      setSEO(seoData);
+      localStorage.setItem("seo", JSON.stringify(seoData));
+
+      setAnalysis(analysisText);
+      localStorage.setItem("analysis", analysisText);
+    } catch (err) {
+      alert("Upload failed. Ensure Flask server is running.");
+      console.error(err);
+    }
+
+    setLoading(false);
+  };
+
+  const handleCopy = (text) => {
+    navigator.clipboard.writeText(text);
+    alert("Copied to clipboard!");
+  };
+
+  const handleDownload = (filename, content) => {
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleLinkedInLogin = () => {
+    window.location.href = `${BACKEND_URL}/linkedin/login`;
+  };
+
+  const handleLinkedInPost = async () => {
+    if (!linkedinPost) {
+      alert("No LinkedIn post content available.");
+      return;
+    }
+
+    setLoading(true);
+
+    const formData = new FormData();
+    formData.append("content", linkedinPost);
+    if (linkedinImage) {
+      formData.append("image", linkedinImage);
+    }
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/post-with-image`, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        alert("Posted successfully to LinkedIn!");
+      } else {
+        throw new Error(result.error || "Unknown error");
+      }
+    } catch (err) {
+      alert("Failed to post: " + err.message);
+    }
+
+    setLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-6 md:p-12 font-sans">
+      <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-xl p-8 space-y-10 border border-gray-200">
+        <h1 className="text-4xl font-bold text-center text-gray-900">🎙️ Podcast Content Generator</h1>
+        <div className="w-full flex flex-col items-center gap-4">
+          <input
+            type="file"
+            accept="audio/*"
+            onChange={handleFileChange}
+            className="block w-full max-w-md text-sm text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm p-3 hover:border-blue-500 transition"
+          />
+          {loading && (
+            <p className="text-blue-600 font-medium text-center animate-pulse">
+              Processing audio and generating content...
+            </p>
+          )}
+        </div>
+
+        {transcription && <OutputCard title="📝 Transcription" text={transcription} />}
+        {analysis && <OutputCard title="📊 Analysis (Topics, Tone, Style)" text={analysis} />}
+        {blog && <OutputCard title="📰 Blog" text={blog} />}
+
+        {linkedinPost && (
+          <>
+            <OutputCard title="💼 LinkedIn Post" text={linkedinPost} />
+
+            <div className="flex flex-col gap-2 items-center mt-4">
+              {/* Optional: Image upload for LinkedIn */}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setLinkedinImage(e.target.files[0])}
+                className="block w-full max-w-xs text-sm text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm p-2"
+              />
+              {linkedinImage && (
+                <div className="mt-2">
+                  <img
+                    src={URL.createObjectURL(linkedinImage)}
+                    alt="Preview"
+                    className="max-h-40 rounded shadow"
+                  />
+                </div>
+              )}
+              <div className="flex gap-4">
+                <button
+                  className="btn bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition"
+                  onClick={handleLinkedInLogin}
+                >
+                  Login with LinkedIn
+                </button>
+                <button
+                  className="btn bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 transition disabled:opacity-50"
+                  onClick={handleLinkedInPost}
+                  disabled={!linkedinPost || loading}
+                >
+                  {loading ? "Posting..." : "Post to LinkedIn"}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {newsletter && <OutputCard title="📩 Newsletter" text={newsletter} />}
+
+        {(seo.title || seo.description || seo.keywords) && (
+          <div className="bg-yellow-50 border border-yellow-300 rounded-xl p-6 shadow-sm space-y-4">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-2">📈 SEO Information</h2>
+            <div className="space-y-2 text-gray-700">
+              {seo.title && <div><strong>Title:</strong> {seo.title}</div>}
+              {seo.description && <div><strong>Description:</strong> {seo.description}</div>}
+              {seo.keywords && <div><strong>Keywords:</strong> {seo.keywords}</div>}
+            </div>
+            <div className="mt-4 flex gap-4">
+              <button
+                onClick={() =>
+                  handleCopy(`${seo.title}\n${seo.description}\n${seo.keywords}`)
+                }
+                className="btn bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700 transition"
+              >
+                Copy
+              </button>
+              <button
+                onClick={() =>
+                  handleDownload(
+                    "seo.txt",
+                    `${seo.title}\n${seo.description}\n${seo.keywords}`
+                  )
+                }
+                className="btn bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700 transition"
+              >
+                Download
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Reusable output card component
+const OutputCard = ({ title, text }) => {
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text);
+    alert("Copied to clipboard!");
+  };
+
+  const handleDownload = () => {
+    const blob = new Blob([text], { type: "text/plain" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${title.replace(/[^\w]/g, "_").toLowerCase()}.txt`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="bg-gray-100 border rounded-xl p-6 shadow-sm space-y-4">
+      <h2 className="text-2xl font-semibold text-gray-800">{title}</h2>
+      <div className="prose max-w-none text-gray-800 whitespace-pre-wrap">
+        <ReactMarkdown>{text}</ReactMarkdown>
+      </div>
+      <div className="flex gap-4">
+        <button
+          onClick={handleCopy}
+          className="btn bg-teal-600 text-white px-3 py-1 rounded hover:bg-teal-700 transition"
+        >
+          Copy
+        </button>
+        <button
+          onClick={handleDownload}
+          className="btn bg-sky-600 text-white px-3 py-1 rounded hover:bg-sky-700 transition"
+        >
+          Download
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default App;
