@@ -20,3 +20,4 @@ pyngrok  # For Colab/localhost testing
 # Optional: Useful for environment variable management
 python-dotenv
 waitress
+requests_oauthlib
