@@ -13,7 +13,7 @@ os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 # LinkedIn OAuth Configuration
 LINKEDIN_CLIENT_ID = "78wr2cfw5cg4p0"
 LINKEDIN_CLIENT_SECRET = "WPL_AP1.2qHMSIbGb6cmCvhn.2MAu4Q=="
-REDIRECT_URI = os.environ["LINKEDIN_REDIRECT_URI"]
+REDIRECT_URI = 'https://350c-34-124-253-83.ngrok-free.app/linkedin/callback'
 
 AUTHORIZATION_BASE_URL = 'https://www.linkedin.com/oauth/v2/authorization'
 TOKEN_URL = 'https://www.linkedin.com/oauth/v2/accessToken'
